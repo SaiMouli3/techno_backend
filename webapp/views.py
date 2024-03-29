@@ -228,9 +228,16 @@ def shift_eff(request, shift_number):
     return JsonResponse(shift_data, safe=False)
 
 
-def get_shift_efficiency(request, shift_number):
-    efficiency = calculate_shift_efficiency(shift_number)
-    return JsonResponse({'shift_number': shift_number, 'efficiency': efficiency})
+# def get_shift_efficiency(request, shift_number):
+#     efficiency = calculate_shift_efficiency(shift_number)
+#     return JsonResponse({'shift_number': shift_number, 'efficiency': efficiency})
+
+
+def shift_eff(request, shift_number):
+    shift_data = Shift.objects.filter(shift_number=shift_number)
+    average_efficiency = shift_data.aggregate(avg_efficiency=Avg('shift_efficiency'))['avg_efficiency']
+
+    return JsonResponse({'average_shift_efficiency': round(average_efficiency, 2)})
 
 
 def get_total_avg_efficiency(request):
