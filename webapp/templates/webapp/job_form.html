@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create a New Job</title>
+    <!-- Add any additional CSS or scripts here -->
+    <style>
+        /* Add your custom styles here */
+    </style>
+</head>
+<body>
+
+  <h2>Create a New Job</h2>
+  <form method="post" action="{% url 'job_create_view' %}" id="job-form">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <label for="id_job_id">Job ID</label>
+    <input type="text" name="job_id" id="id_job_id"><br>
+
+    <label for="id_job_name">Job Name</label>
+    <input type="text" name="job_name" id="id_job_name"><br>
+
+    <div id="tools-fields">
+      {% for tool in tools %}
+        <label>
+          <input type="checkbox" name="tools" value="{{ tool.tool_code }}" data-tool-code="{{ tool.tool_code }}">
+          {{ tool.tool_name }}
+        </label>
+        <div class="tool-details" id="{{ tool.tool_code }}" style="display:none;">
+          <label for="id_length_{{ tool.tool_code }}">Length for {{ tool.tool_name }}</label>
+          <input type="text" name="length_{{ tool.tool_code }}" id="id_length_{{ tool.tool_code }}"><br>
+          <label for="id_no_of_holes_{{ tool.tool_code }}">Number of Holes for {{ tool.tool_name }}</label>
+          <input type="text" name="no_of_holes_{{ tool.tool_code }}" id="id_no_of_holes_{{ tool.tool_code }}"><br>
+        </div>
+
+      {% endfor %}
+    </div>
+
+    <button type="submit">Create Job</button>
+  </form>
+
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      // Show/hide fields based on tool selection
+      $("input[name='tools']").change(function () {
+        var toolCode = $(this).data("tool-code");
+        var toolDetailsDiv = $("#" + toolCode);
+
+        if ($(this).prop("checked")) {
+          toolDetailsDiv.show();
+        } else {
+          toolDetailsDiv.hide();
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>

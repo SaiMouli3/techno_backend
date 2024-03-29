@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Performs Form</title>
+</head>
+<body>
+
+<h2>Performs Form</h2>
+
+<form method="post" action="{% url 'performs_create' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Submit</button>
+</form>
+
+</body>
+</html>
+

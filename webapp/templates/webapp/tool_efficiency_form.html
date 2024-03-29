@@ -1,0 +1,20 @@
+<!-- tool_efficiency_form.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Efficiency Calculation</title>
+</head>
+<body>
+    <h1>Tool Efficiency Calculation</h1>
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Calculate Efficiency</button>
+    </form>
+    {% if efficiency is not None %}
+        <p>Tool Efficiency: {{ efficiency }} %</p>
+    {% endif %}
+</body>
+</html>

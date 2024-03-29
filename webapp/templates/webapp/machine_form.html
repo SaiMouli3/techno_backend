@@ -1,0 +1,72 @@
+<!-- machine_form.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create a New Machine</title>
+</head>
+<body>
+
+<h2>Create a New Machine</h2>
+<div id="machine-details">
+    <label for="id_machine_id">Machine ID</label>
+    <input type="text" name="machine_id" id="id_machine_id"><br>
+
+    <label for="id_machine_name">Machine Name</label>
+    <input type="text" name="machine_name" id="id_machine_name"><br>
+
+    <label for="jobs">Select Job(s)</label>
+    {% for job in jobs %}
+        <label>
+            <input type="checkbox" name="jobs" value="{{ job.id }}" class="job-checkbox"> {{ job.job_name }}
+        </label>
+        <div class="tool-details" id="tools_{{ job.id }}" style="display:none;">
+            <label for="tools">Tool(s) for {{ job.job_name }}</label>
+            <div id="tool-list_{{ job.id }}"></div>
+            <br>
+            <label for="tool_code_{{ job.id }}">Tool Code</label>
+            <input type="text" name="tool_code_{{ job.id }}" id="tool_code_{{ job.id }}"><br>
+        </div>
+    {% endfor %}
+</div>
+
+<button type="button" onclick="createMachine()">Create Machine</button>
+
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script>
+    function createMachine() {
+        // Implement your logic to handle machine creation
+    }
+
+    $(document).ready(function () {
+        // Show/hide tool details based on job selection
+        $(".job-checkbox").change(function () {
+            var jobId = $(this).val();
+            var toolsDiv = $("#tools_" + jobId);
+
+            if ($(this).prop("checked")) {
+                toolsDiv.show();
+                loadToolNames(jobId);
+            } else {
+                toolsDiv.hide();
+            }
+        });
+    });
+
+    function loadToolNames(jobId) {
+        $.ajax({
+            type: 'GET',
+            url: '/get_tool_names/',  // Replace with the actual URL to retrieve tool names for a job
+            data: {job_id: jobId},
+            success: function (data) {
+                $("#tool-list_" + jobId).html('(' + data.tool_names + ')');
+            },
+            error: function () {
+                console.log('Error loading tool names.');
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

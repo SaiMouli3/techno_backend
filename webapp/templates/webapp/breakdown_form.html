@@ -1,0 +1,44 @@
+<!-- breakdown_form.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breakdown Data</title>
+</head>
+<body>
+    <h1>Breakdown Data</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Length Used</th>
+                <th>Expected Length Remaining</th>
+                <th>Replaced By</th>
+                <th>Reason</th>
+                <th>Change Time</th>
+                <th>Hours into Shift</th>
+                <th>Machine ID</th>
+                <th>Tool Code</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for breakdown_item in breakdown_data %}
+            <tr>
+                <td>{{ breakdown_item.id }}</td>
+                <td>{{ breakdown_item.date }}</td>
+                <td>{{ breakdown_item.length_used }}</td>
+                <td>{{ breakdown_item.expected_length_remaining }}</td>
+                <td>{{ breakdown_item.replaced_by }}</td>
+                <td>{{ breakdown_item.reason }}</td>
+                <td>{{ breakdown_item.change_time }}</td>
+                <td>{{ breakdown_item.no_of_min_shift }}</td>
+                <td>{{ breakdown_item.id }}</td>
+                <td>{{ breakdown_item.tool_code.tool_code }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
