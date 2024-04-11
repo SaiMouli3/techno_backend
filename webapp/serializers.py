@@ -1,7 +1,7 @@
 # serializers.py
 
 from rest_framework import serializers
-from .models import Employee2, Job, Tool, Breakdown, Machine, Performs, NewMachine, ToolChart
+from .models import Employee2, Job, Tool, Breakdown, Machine, Performs, NewMachine, ToolChart, Reviving1
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -60,4 +60,9 @@ class NMSerializer(serializers.ModelSerializer):
 class ChartS(serializers.ModelSerializer):
     class Meta:
         model = ToolChart
+        fields = '__all__'
+
+class Rev(serializers.ModelSerializer):
+    class Meta:
+        model = Reviving1
         fields = '__all__'

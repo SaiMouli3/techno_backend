@@ -5,8 +5,9 @@ from .views import EmployeeList, EmployeeCreateView, update_employee, JobsList, 
         get_total_avg_efficiency, delete_employee_by_ssn, get_number_of_jobs, get_number_of_machines, \
         get_number_of_employees, get_number_of_tools, shift_eff, shift_performance_by_date, efficiency_by_employee, \
         delete_breakdown_by_tool_code, NMachineList, get_tool_codes, CreateMachineList, RGH, ChartList, \
-        calculate_avg_shift_efficiency
-from .views import update_tool_view, top_employees, top_least_employees, get_tool_data, tool_chart_details, cacl_avgs
+        calculate_avg_shift_efficiency, LReviving1,NMachineView
+from .views import update_tool_view, top_employees, top_least_employees, get_tool_data, tool_chart_details, cacl_avgs, add_to_reviving,shift_counts,tool_codes_view,unique_part_numbers_view,target_by_machine_name
+
 
 
 urlpatterns = [
@@ -16,10 +17,17 @@ urlpatterns = [
         path('api/top_employees', top_employees),
         path('api/least_employee', top_least_employees),
         path('api/employees/<str:emp_ssn>/', delete_employee_by_ssn, name='delete_employee_by_ssn'),
+        # path('api/breakdown/<str:tool_code>/',add_to_reviving,name="add_to_reviving"),
+        path('api/break/<str:tool_code>/<str:date>',add_to_reviving,name="add_to_reviving"),
 
+        path('target/<str:machine_name>/', target_by_machine_name, name='target_by_machine_name'),
 
+        path('api/shift_counts/',shift_counts,name='shift_counts'),
+        path('api/rev',LReviving1.as_view()),
         path('calculate-shift-efficiency/<str:date_a>/<str:date_b>/<int:shift_number>/', calculate_avg_shift_efficiency, name='calculate_avg_shift_efficiency'),
 
+        path('api/tool_reply/',tool_codes_view,name="toolcodesView"),
+        path('api/nmview/',NMachineView.as_view()),
         #counting
          path('num_jobs/',get_number_of_jobs, name='num_jobs'),
          path('num_machines/',get_number_of_machines, name='num_machines'),
@@ -28,9 +36,9 @@ urlpatterns = [
 
 
         path('api/tools/', ToolList.as_view(), name='tool-list'),
-        
+
         path('api/tools/create', ToolCreateView.as_view(), name='tool-list-create'),
-        
+
         path('api/update_tool', update_tool_view),
         path('api/tool_data', get_tool_data),
         path('api/tool_chart/<str:tool_code>', tool_chart_details),
@@ -53,7 +61,8 @@ urlpatterns = [
         path('get-tool-codes/<str:part_no>/', get_tool_codes, name='get_tool_codes'),
 
         path('api/avg/<str:date_a>/<str:date_b>', cacl_avgs),
-        
+        path('api/jobss/', unique_part_numbers_view, name='unique_part_numbers'),
+
 
         path('shift/<int:shift_number>/', get_shift_efficiency, name='get_shift_efficiency'),
         path('total_avg_efficiency/', get_total_avg_efficiency, name='get_total_avg_efficiency'),

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
-from .models import Employee2, Tool, NewJob, Job, NewMachine, Machine, Performs, Breakdown, Reviving,ToolChart, Shift,ShiftEfficiency
+from .models import Employee2, Tool, NewJob, Job, NewMachine, Machine, Performs, Breakdown, Reviving1,ToolChart, Shift,ShiftEfficiency
 from .resources import Employee2Resource, ToolResource, JobResource
 
 
@@ -25,7 +25,8 @@ admin.site.register(NewMachine)
 admin.site.register(Machine)
 admin.site.register(Performs)
 admin.site.register(Breakdown)
-admin.site.register(Reviving)
+
 admin.site.register(Shift)
 admin.site.register(ToolChart)
 admin.site.register(ShiftEfficiency)
+admin.site.register(Reviving1)

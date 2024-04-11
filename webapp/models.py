@@ -1,7 +1,7 @@
 from django.db import models
 from django.apps import AppConfig
 from datetime import date
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_delete,pre_save
 from django.shortcuts import get_object_or_404
 from django.db.models import F, Sum, Avg
 
@@ -66,13 +66,14 @@ class Machine(models.Model):
     machine_name = models.CharField(max_length=100)
     part_no = models.ForeignKey(NewJob, on_delete=models.CASCADE, db_column='part_no')
     tool_code = models.ForeignKey(Tool, on_delete=models.CASCADE, db_column='tool_code')
+    target=models.IntegerField()
 
     class Meta:
         unique_together = ('machine_id', 'tool_code')
 
     def __str__(self):
         return f"{self.machine_id}"
-    
+
 
 class Shift(models.Model):
     id = models.BigAutoField(primary_key=True, auto_created=True)
@@ -86,17 +87,17 @@ class Shift(models.Model):
 class ShiftEfficiency(models.Model):
     shift_number=models.IntegerField(primary_key=True)
     shift_efficiency=models.FloatField()
-    
+
     def __str__(self):
         return f"{self.shift_number}"
 
 class Performs(models.Model):
-    date = models.DateField(default=date.today)
+    date = models.DateField()
     emp_ssn = models.ForeignKey(Employee2, on_delete=models.CASCADE, db_column='emp_ssn', to_field='emp_ssn')
     machine_id = models.ForeignKey(NewMachine, on_delete=models.CASCADE, db_column='machine_id', to_field='machine_id')
     shift_number = models.IntegerField()
     shift_duration = models.FloatField()
-    partial_shift = models.IntegerField()
+    partial_shift = models.FloatField()
     target = models.IntegerField()
     achieved = models.IntegerField()
 
@@ -114,16 +115,19 @@ class Breakdown(models.Model):
     expected_length_remaining = models.FloatField()
     replaced_by = models.ForeignKey(Tool, on_delete=models.CASCADE, related_name='breakdown_replaced_by',db_column='replaced_by', to_field='tool_code')
     reason = models.CharField(max_length=100)
-    change_time = models.DurationField()
+    change_time = models.IntegerField()
     no_of_min_into_shift = models.IntegerField()
+    emp_ssn=models.ForeignKey(Employee2,on_delete=models.CASCADE,to_field='emp_ssn')
 
     def __str__(self):
-        return f"Breakdown on {self.date} for Tool: {self.tool_code.tool_code} on Machine: {self.machine_id.machine_name}"
+        return f"{self.tool_code}"
 
 
-class Reviving(models.Model):
+
+
+class Reviving1(models.Model):
     tool_code=models.OneToOneField(Tool,on_delete=models.CASCADE,primary_key=True)
-
+    date=models.DateField()
     def __str__(self):
         return f"{self.tool_code}"
 
@@ -150,50 +154,62 @@ class ToolChart(models.Model):
 
 
 #----------------------Post updation of performs table--------------
-    
+
     #Tool table updation
 def tool_table_updation(sender,instance,created,**kwargs):
-    
+
     machine_id = instance.machine_id
 
     machine_instance=get_object_or_404(Machine,machine_id=machine_id)
     tool_code = machine_instance.tool_code
-
+    print("In tool table updation!")
     part_no = machine_instance.part_no
-    
-    
+
+
     job_tuple=get_object_or_404(Job,tool_code=tool_code,part_no=part_no)
 
     depth_of_cut = job_tuple.depth_of_cut
-    
+
     no_of_holes=job_tuple.no_of_holes
-    
+
     additional_length=depth_of_cut*no_of_holes
-    
+
 
     tool_tuple=get_object_or_404(Tool,tool_code=tool_code)
     tool_tuple.length_cut_so_far+=additional_length
-    
-    tool_tuple.save()
-    
 
-    new_efficiency=calculate_tool_efficiency(tool_code)
+    tool_tuple.save()
+
+
+    new_efficiency=calculate_tool_efficiency(tool_code,tool_tuple.length_cut_so_far)
     tool_tuple.tool_efficiency=new_efficiency
     tool_tuple.save()
-    
+
 post_save.connect(tool_table_updation,sender=Performs)
 
-def calculate_tool_efficiency(tool_code):
-    
+
+def calculate_tool_efficiency(tool_code,length_cut_so_far):
+
     tool_tuple=get_object_or_404(Tool,tool_code=tool_code)
-    breakpoint_factor=0.1
-    
-    new_efficiency = tool_tuple.tool_efficiency / (1 + (tool_tuple.no_of_brk_points * breakpoint_factor))
-   
+
+
+    new_efficiency = (length_cut_so_far / tool_tuple.max_life_expectancy_in_mm)*100
+
     return new_efficiency
 
 
+def calculate_tool_efficiency_after_updating_breakdown(sender,instance,created,**kwargs):
+    print("In calculate tool efficiency after breakdown")
+    tool_code=instance.tool_code
+    tool_tuple=get_object_or_404(Tool,tool_code=tool_code)
+    length_cut_so_far=tool_tuple.length_cut_so_far
+    max_life_expectancy=tool_tuple.max_life_expectancy_in_mm
+    new_efficiency = (length_cut_so_far / max_life_expectancy)*100
+    tool_tuple.tool_efficiency=new_efficiency
+    tool_tuple.save()
 
+
+post_save.connect(calculate_tool_efficiency_after_updating_breakdown,sender=Breakdown)
 
     #Shift Table updation-----------------------
 
@@ -211,28 +227,106 @@ def calculate_shift_efficiency(sender,instance,created,**kwargs):
     partial_shift_sum = performs_aggregated['partial_shift_sum']
     target_sum = performs_aggregated['target_sum']
     achieved_sum = performs_aggregated['achieved_sum']
- 
- 
+
+
     x = target_sum * (partial_shift_sum / shift_duration_sum)
-    
+
     efficiency = (achieved_sum / x)*100
-    
+
     efficiency=round(efficiency,2)
-    
-    
-    
+
+
+
     shift_tuple=get_object_or_404(ShiftEfficiency,shift_number=shift_number) #error here
     print(shift_tuple)
-    
+
     shift_tuple.shift_efficiency=efficiency
-    
+
     shift_tuple.save()
 
-    
+    new_shift = Shift.objects.create(
+    date=date.today(),
+    shift_number=shift_number,
+    shift_efficiency=efficiency
+    )
+
+    new_shift.save()
+
+
+
 post_save.connect(calculate_shift_efficiency,sender=Performs)
 
 
 
 
 #------------------------------------------------------------------------------------
+
+
+def employee_table_updation(sender,instance,created,**kwargs):
+    print("in employee table updation")
+    emp_ssn=instance.emp_ssn
+    print(emp_ssn)
+    performs_aggregated = Performs.objects.filter(emp_ssn=emp_ssn).aggregate(
+        shift_duration_sum=Sum('shift_duration'),
+        partial_shift_sum=Sum('partial_shift'),
+        target_sum=Sum('target'),
+        achieved_sum=Sum('achieved')
+    )
+
+    shift_duration_sum = performs_aggregated['shift_duration_sum']
+    partial_shift_sum = performs_aggregated['partial_shift_sum']
+    target_sum = performs_aggregated['target_sum']
+    achieved_sum = performs_aggregated['achieved_sum']
+
+
+    x = target_sum * (partial_shift_sum / shift_duration_sum)
+
+    efficiency = (achieved_sum / x)*100
+
+    efficiency=round(efficiency,2)
+
+
+    emp_tuple=get_object_or_404(Employee2,emp_ssn=emp_ssn)
+    print(emp_tuple)
+
+    emp_tuple.emp_efficiency=efficiency
+
+    emp_tuple.save()
+
+post_save.connect(employee_table_updation,sender=Performs)
+
+
+
+def partial_shift_update(sender,instance,**kwargs):
+    print("in partial shift update")
+
+    created = kwargs.get('created', False)
+
+
+    breakdown_entry = Breakdown.objects.filter(emp_ssn=instance.emp_ssn, date=instance.date).first()
+    print(instance.emp_ssn)
+
+    if breakdown_entry:
+        # Reduce partial_shift by change_time if breakdown entry exists
+        print(instance.partial_shift)
+        print(breakdown_entry.change_time)
+        instance.partial_shift -= breakdown_entry.change_time / 60
+        print(instance.partial_shift)
+
+pre_save.connect(partial_shift_update,sender=Performs)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

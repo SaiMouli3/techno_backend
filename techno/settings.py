@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-9k*k(&vr_h&rab320%xkx%buo)!c#eu(=(01jkw*8s5==$q8)o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['techno.pythonanywhere.com']
 
 # Application definition
 
@@ -86,6 +86,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:8000",
     "http://localhost:8000",
+    "https://techno-five-ashen.vercel.app",
+    "https://techno-frontend-one.vercel.app",  # Remove trailing slash
 ]
 CORS_ALLOW_METHODS = (
     "DELETE",
@@ -113,13 +115,14 @@ WSGI_APPLICATION = 'techno.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'official19',
-        'USER': 'root',
-        'PASSWORD': 'A754557CS--9',
-        'HOST': 'localhost',  # or the hostname where your MySQL server is running
-        'PORT': '3306',  # or the port on which your MySQL server is listening
+        'NAME': 'techno$final_db1',
+        'USER': 'techno',
+        'PASSWORD': 'Mm@u7Sn)M3!quJL',
+        'HOST': 'techno.mysql.pythonanywhere-services.com',
+        'PORT': '3306',
     }
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -179,7 +182,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
