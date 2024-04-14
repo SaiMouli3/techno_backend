@@ -19,6 +19,10 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.http import JsonResponse
 from collections import defaultdict
+from rest_framework.renderers import JSONRenderer  # Import JSONRenderer
+from django.core.exceptions import MultipleObjectsReturned
+from rest_framework.views import APIView
+
 
 previous_values_list = []
 
@@ -33,14 +37,34 @@ class EmployeeList(generics.ListAPIView):
     serializer_class = EmployeeSerializer
 
 @method_decorator(csrf_exempt, name='dispatch')
+class PerformsList(generics.ListAPIView):
+    queryset = Performs.objects.all()
+    serializer_class = PerformsSerializers
+
+
+@method_decorator(csrf_exempt, name='dispatch')
 class EmployeeCreateView(CreateAPIView):
     queryset = Employee2.objects.all()
     serializer_class = EmployeeSerializer
 
 @method_decorator(csrf_exempt, name='dispatch')
 class JobsList(generics.ListAPIView):
-    queryset = Job.objects.all()
     serializer_class = JobSerializer
+
+    def get_queryset(self):
+        # Retrieve all jobs from the database
+        all_jobs = Job.objects.all()
+
+        # Create a dictionary to store unique jobs based on component_name, part_no, and operation_no
+        unique_jobs = {}
+        for job in all_jobs:
+            key = (job.component_name, job.part_no, job.operation_no)
+            # Add the job to the dictionary if it's not already present
+            if key not in unique_jobs:
+                unique_jobs[key] = job
+
+        # Return the unique jobs
+        return unique_jobs.values()
 
 @method_decorator(csrf_exempt, name='dispatch')
 class NMachineList(generics.ListAPIView):
@@ -90,42 +114,148 @@ class NMachineView(CreateAPIView):
 #         else:
 #             return Response({"error": "Failed to create NewJob"}, status=status.HTTP_400_BAD_REQUEST)
 
+# @method_decorator(csrf_exempt, name='dispatch')
+# class JobCreateView(CreateAPIView):
+#     queryset = Job.objects.all()
+#     serializer_class = JobSerializer
+
+#     def post(self, request, *args, **kwargs):
+#         part_no = request.data.get('part_no')
+#         new_job = NewJob.objects.filter(part_no=part_no).first()  # Check if NewJob with given part_no exists
+
+#         if not new_job:  # If NewJob doesn't exist, create it
+#             new_job = NewJob.objects.create(part_no=part_no)
+
+#         serializer = self.get_serializer(data=request.data)
+#         if serializer.is_valid():  # Check if serializer is valid
+#             serializer.save()
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         else:
+#             new_job.delete()  # Delete the NewJob object if serializer is not valid
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 @method_decorator(csrf_exempt, name='dispatch')
 class JobCreateView(CreateAPIView):
     queryset = Job.objects.all()
     serializer_class = JobSerializer
 
     def post(self, request, *args, **kwargs):
+
         part_no = request.data.get('part_no')
+        component_name = request.data.get('component_name')
+        operation_no = request.data.get('operation_no')
+        tool_name = request.data.get('tool_name')
+
         new_job = NewJob.objects.filter(part_no=part_no).first()  # Check if NewJob with given part_no exists
 
         if not new_job:  # If NewJob doesn't exist, create it
             new_job = NewJob.objects.create(part_no=part_no)
 
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():  # Check if serializer is valid
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            new_job.delete()  # Delete the NewJob object if serializer is not valid
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        tools = Tool.objects.filter(tool_name=tool_name)
+        if not tools:
+            return Response({"error": f"No tools found with name '{tool_name}'"}, status=status.HTTP_404_NOT_FOUND)
+
+        created_jobs = []
+
+        for tool in tools:
+            tool_code = tool.tool_code
+
+            data = {
+                "part_no": part_no,
+                "component_name": component_name,
+                "operation_no": operation_no,
+                "tool_code": tool_code,
+                "depth_of_cut": request.data.get('depth_of_cut'),  # Assuming depth_of_cut is provided in the request
+                "no_of_holes": request.data.get('no_of_holes')  # Assuming no_of_holes is provided in the request
+            }
+
+            serializer = self.get_serializer(data=data)
+            if serializer.is_valid():
+                serializer.save()
+                created_jobs.append(serializer.data)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(created_jobs, status=status.HTTP_201_CREATED)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ToolList(generics.ListAPIView):
     queryset = Tool.objects.all()
     serializer_class = ToolSerializer
 
-@method_decorator(csrf_exempt, name='dispatch')
-class CreateMachineList(CreateAPIView):
-     queryset = Machine.objects.all()
-     serializer_class = MachineSerializer
+# @method_decorator(csrf_exempt, name='dispatch')
+# class CreateMachineList(CreateAPIView):
+#     queryset = Machine.objects.all()
+#     serializer_class = MachineSerializer
 
-     def create(self, request, *args, **kwargs):
-         try:
-             return super().create(request, *args, **kwargs)
-         except IntegrityError as e:
-             error_message = "The machine has already been configured."
-             return JsonResponse({'error': error_message}, status=400)
+#     def perform_create(self, serializer):
+#         machine_id = self.request.data.get('machine_id')
+#         existing_machines = Machine.objects.filter(machine_id=machine_id)
+#         if existing_machines:
+#             existing_machines.delete()
+#         serializer.save()
+
+#     def post(self, request, *args, **kwargs):
+#         return self.create(request, *args, **kwargs)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CreateMachineList(APIView):
+    queryset = Machine.objects.all()
+    serializer_class = MachineSerializer
+
+    def perform_create(self, serializer):
+        machine_id = self.request.data.get('machine_id')
+        tool_code = self.request.data.get('tool_code')
+        existing_machines = Machine.objects.filter(machine_id=machine_id, tool_code=tool_code)
+
+
+        for existing_machine in existing_machines:
+            existing_machine.delete()
+
+        serializer.save()
+
+    def post(self, request, *args, **kwargs):
+        data = request.data
+        serializer = self.serializer_class(data=data, many=isinstance(data, list))
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data)
+
+
+
+# @method_decorator(csrf_exempt, name='dispatch')
+# class CreateMachineList(APIView):
+#     queryset = Machine.objects.all()
+#     serializer_class = MachineSerializer
+
+#     def add_machine_data(self, data):
+#         numOfTools = data.get('numOfTools')
+#         serializer = self.serializer_class(data=data, many=isinstance(data, list))
+#         serializer.is_valid(raise_exception=True)
+
+#         i = 0
+#         machine_id = data.get('machine_id')
+#         tool_code = data.get('tool_code')
+
+#         if i == 0:
+#             existing_machines = Machine.objects.filter(machine_id=machine_id)
+#             if not existing_machines :
+#                 pass
+#             for existing_machine in existing_machines:
+#                 existing_machine.delete()
+#             i += 1
+#         if i < numOfTools:
+#             serializer.save()
+#             i += 1
+
+#         return Response(serializer.data)
+
+#     def post(self, request, *args, **kwargs):
+#         data = request.data
+#         return self.add_machine_data(data)
+
+
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -160,11 +290,23 @@ class BreakdownCreateView(CreateAPIView):
         if serializer.is_valid():
             self.perform_create(serializer)
             tool_code = request.data.get('tool_code')
+            machine_id = request.data.get('machine_id')
+            replaced_by_tool_code = request.data.get('replaced_by')
             incrementBrkPntByOne(tool_code)
+            update_machine_tool_code(machine_id,tool_code, replaced_by_tool_code)
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+def update_machine_tool_code(machine_id,tool_code, replaced_by_tool_code):
+    try:
+        # Update the tool_code in Machine table
+        Machine.objects.filter(machine_id=machine_id,tool_code=tool_code).update(tool_code=replaced_by_tool_code)
+    except Exception as e:
+        print(f"An error occurred while updating machine tool code: {e}")
 
 @method_decorator(csrf_exempt, name='dispatch')
 class MachineList(generics.ListAPIView):
@@ -173,7 +315,7 @@ class MachineList(generics.ListAPIView):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PerformsCreateView(CreateAPIView):
-    queryset = Performs
+    queryset = Performs.objects.all()
     serializer_class = PerformsSerializers
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -192,15 +334,35 @@ def top_least_employees(request):
     data = [{'emp_name': employee.emp_name, 'emp_ssn': employee.emp_ssn} for employee in least_employees]
     return JsonResponse(data, safe=False)
 
+# @method_decorator(csrf_exempt, name='dispatch')
+# def update_employee(request, pk):
+#     employee = get_object_or_404(Employee2, emp_ssn=pk)
+
+#     if request.method == 'POST':
+#         serializer = EmployeeSerializer(instance=employee, data=request.data)  # Assuming data is sent via POST form data
+#         if serializer.is_valid():
+#             serializer.save()
+#             return JsonResponse(serializer.data)
+#         return JsonResponse(serializer.errors, status=400)
+#     else:
+#         return JsonResponse({"error": "Only POST method is allowed"}, status=405)
+
 @method_decorator(csrf_exempt, name='dispatch')
-@api_view(['PUT'])
 def update_employee(request, pk):
+    # Get the employee instance
     employee = get_object_or_404(Employee2, emp_ssn=pk)
-    serializer = EmployeeSerializer(instance=employee, data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data)
-    return Response(serializer.errors, status=400)
+
+    # Check if data is sent via POST request
+    if request.method == 'POST':
+        # Deserialize the JSON data sent by Axios
+        data = json.loads(request.body)
+        serializer = EmployeeSerializer(instance=employee, data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data)
+        return JsonResponse(serializer.errors, status=400)
+    else:
+        return JsonResponse({"error": "Only POST method is allowed"}, status=405)
 
 @method_decorator(csrf_exempt, name='dispatch')
 def update_tool_view(request):
@@ -217,12 +379,9 @@ def incrementBrkPntByOne(tool_code):
     tool = Tool.objects.get(tool_code=tool_code)
     tool.no_of_brk_points += 1
     part_no_count = Job.objects.filter(tool_code=tool).count()
-    if tool.max_life_expectancy_in_mm > 0:
-        efficiency = (tool.length_cut_so_far / tool.max_life_expectancy_in_mm) * (1 - (0.1 * tool.no_of_brk_points)) * 100
-        efficiency = round(efficiency, 2)
-    else:
-        efficiency = 0.0
-    tool.save()
+
+
+    efficiency=(tool.length_cut_so_far/tool.max_life_expectancy_in_mm)*100
 
     # Create and save ToolChart instance
     tool_chart = ToolChart.objects.create(
@@ -232,7 +391,10 @@ def incrementBrkPntByOne(tool_code):
         part_no_count=part_no_count
     )
 
+    tool.tool_efficiency=0
+    tool.length_cut_so_far=0
     tool_chart.save()
+    tool.save()
 
 
 def RGH(request):
@@ -587,11 +749,130 @@ def target_by_machine_name(request, machine_name):
 
 
 
+# def get_machine_data(request, machine_id):
+#     machine = get_object_or_404(Machine, machine_id=machine_id)
+#     data = {
+#         "machine_id": machine.machine_id_id,  # Accessing the ID of NewMachine foreign key
+#         "machine_name": machine.machine_name,
+#         "part_no": machine.part_no_id,  # Accessing the ID of NewJob foreign key
+#         "tool_code": machine.tool_code_id,  # Accessing the ID of Tool foreign key
+#         "target": machine.target
+#     }
+#     return JsonResponse(data)
+
+# def get_machine_data(request, machine_id):
+#     try:
+#         machine = Machine.objects.filter(machine_id=machine_id).first()
+#         if machine:
+#             data = {
+#                 "machine_id": machine.machine_id_id,  # Accessing the ID of NewMachine foreign key
+#                 "machine_name": machine.machine_name,
+#                 "part_no": machine.part_no_id,  # Accessing the ID of NewJob foreign key
+#                 "tool_code": machine.tool_code_id,  # Accessing the ID of Tool foreign key
+#                 "target": machine.target
+#             }
+#             return JsonResponse(data)
+#         else:
+#             return JsonResponse({"message": "No machine found with the given ID"}, status=404)
+#     except MultipleObjectsReturned:
+#         machines = Machine.objects.filter(machine_id=machine_id)
+#         first_machine = machines.first()
+#         data = {
+#             "machine_id": first_machine.machine_id_id,  # Accessing the ID of NewMachine foreign key
+#             "machine_name": first_machine.machine_name,
+#             "part_no": first_machine.part_no_id,  # Accessing the ID of NewJob foreign key
+#             "tool_code": first_machine.tool_code_id,  # Accessing the ID of Tool foreign key
+#             "target": first_machine.target
+#         }
+#         return JsonResponse(data)
 
 
 
+def get_machine_data(request, machine_id):
+    try:
+        machine = Machine.objects.filter(machine_id=machine_id).first()
+        if machine:
+            data = {
+                "machine_id": machine.machine_id_id,
+                "machine_name": machine.machine_name,
+                "part_no": machine.part_no_id,
+                "target": machine.target
+            }
+
+            # Collect all unique tool codes
+            tool_codes = set()
+            machines = Machine.objects.filter(machine_id=machine_id)
+            for m in machines:
+                tool_codes.add(m.tool_code_id)
+
+            # If there are multiple tool codes, include them in an array
+                data["tool_code"] = list(tool_codes)
+
+            return JsonResponse(data)
+        else:
+            return JsonResponse({"message": "No machine found with the given ID"}, status=404)
+    except MultipleObjectsReturned:
+        # If multiple objects returned, handle it here
+        machines = Machine.objects.filter(machine_id=machine_id)
+        first_machine = machines.first()
+        data = {
+            "machine_id": first_machine.machine_id_id,
+            "machine_name": first_machine.machine_name,
+            "part_no": first_machine.part_no_id,
+            "target": first_machine.target
+        }
+
+        # Collect all unique tool codes
+        tool_codes = set()
+        for m in machines:
+            tool_codes.add(m.tool_code_id)
+
+        # Include tool codes in an array
+        data["tool_code"] = list(tool_codes)
+
+        return JsonResponse(data)
+
+@method_decorator(csrf_exempt, name='dispatch')
+def delete_machines(request, machine_id):
+    try:
+        machine = NewMachine.objects.get(machine_id=machine_id)
+        machine.delete()
+        machines = Machine.objects.filter(machine_id=machine_id)
+        machines.delete()
+        return JsonResponse({'message': 'Machines deleted successfully'})
+    except ObjectDoesNotExist:
+        return JsonResponse({'message': 'No machines found with the given machine_id'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
+def delete_tools_by_name(request, tool_name):
+    try:
+        tools = Tool.objects.filter(tool_name=tool_name)
+        tools.delete()
+        return JsonResponse({'message': f'All tools with tool_name {tool_name} deleted successfully'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+def delete_job_by_part_no(request, part_no):
+    jobs = Job.objects.filter(part_no=part_no)
+    new_job = get_object_or_404(NewJob, part_no=part_no)
+    new_job.delete()
+    jobs.delete()
+    return JsonResponse({'message': f'Jobs with part number {part_no} deleted successfully'})
+
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+def display_tool_codes(request, machine_id):
+    try:
+        machines = Machine.objects.filter(machine_id=machine_id)
+        tool_codes = [machine.tool_code.tool_code for machine in machines]
+        return JsonResponse({'machine_id': machine_id, 'tool_codes': tool_codes})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 

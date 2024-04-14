@@ -6,8 +6,8 @@ from .views import EmployeeList, EmployeeCreateView, update_employee, JobsList, 
         get_number_of_employees, get_number_of_tools, shift_eff, shift_performance_by_date, efficiency_by_employee, \
         delete_breakdown_by_tool_code, NMachineList, get_tool_codes, CreateMachineList, RGH, ChartList, \
         calculate_avg_shift_efficiency, LReviving1,NMachineView
-from .views import update_tool_view, top_employees, top_least_employees, get_tool_data, tool_chart_details, cacl_avgs, add_to_reviving,shift_counts,tool_codes_view,unique_part_numbers_view,target_by_machine_name
-
+from .views import update_tool_view, top_employees, top_least_employees, get_tool_data, tool_chart_details, cacl_avgs, add_to_reviving,shift_counts,tool_codes_view,unique_part_numbers_view,target_by_machine_name,PerformsList
+from .views import get_machine_data,delete_machines,delete_tools_by_name,delete_job_by_part_no,display_tool_codes
 
 
 urlpatterns = [
@@ -19,8 +19,16 @@ urlpatterns = [
         path('api/employees/<str:emp_ssn>/', delete_employee_by_ssn, name='delete_employee_by_ssn'),
         # path('api/breakdown/<str:tool_code>/',add_to_reviving,name="add_to_reviving"),
         path('api/break/<str:tool_code>/<str:date>',add_to_reviving,name="add_to_reviving"),
+        path('api/per/', PerformsList.as_view(), name='performs-list'),
+
+        path('display-tool-codes/<str:machine_id>/', display_tool_codes, name='display_tool_codes'),
 
         path('target/<str:machine_name>/', target_by_machine_name, name='target_by_machine_name'),
+        path('machinesss/<str:machine_id>/', delete_machines, name='delete_machine'),
+        path('delete-tools/<str:tool_name>/', delete_tools_by_name, name='delete_tools_by_name'),
+        path('delete-job/<str:part_no>/', delete_job_by_part_no, name='delete_job_by_part_no'),
+
+        path('machines/<str:machine_id>/', get_machine_data, name='get_machine_data'),
 
         path('api/shift_counts/',shift_counts,name='shift_counts'),
         path('api/rev',LReviving1.as_view()),
