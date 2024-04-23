@@ -49,8 +49,7 @@ class Job(models.Model):
     tool_code = models.ForeignKey(Tool, on_delete=models.CASCADE, db_column='tool_code', to_field='tool_code')
 
     class Meta:
-        unique_together = ('part_no', 'tool_code')
-
+        unique_together = ('part_no','tool_code')
     def __str__(self):
         return f"Part No: {self.part_no}, Tool Code: {self.tool_code}"
 
@@ -94,7 +93,8 @@ class ShiftEfficiency(models.Model):
 class Performs(models.Model):
     date = models.DateField()
     emp_ssn = models.ForeignKey(Employee2, on_delete=models.CASCADE, db_column='emp_ssn', to_field='emp_ssn')
-    machine_id = models.ForeignKey(NewMachine, on_delete=models.CASCADE, db_column='machine_id', to_field='machine_id')
+    # machine_id = models.ForeignKey(NewMachine, on_delete=models.CASCADE, db_column='machine_id', to_field='machine_id')
+    machine_id = models.CharField(max_length=100)
     shift_number = models.IntegerField()
     shift_duration = models.FloatField()
     partial_shift = models.FloatField()

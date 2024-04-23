@@ -8,6 +8,7 @@ from .views import EmployeeList, EmployeeCreateView, update_employee, JobsList, 
         calculate_avg_shift_efficiency, LReviving1,NMachineView
 from .views import update_tool_view, top_employees, top_least_employees, get_tool_data, tool_chart_details, cacl_avgs, add_to_reviving,shift_counts,tool_codes_view,unique_part_numbers_view,target_by_machine_name,PerformsList
 from .views import get_machine_data,delete_machines,delete_tools_by_name,delete_job_by_part_no,display_tool_codes
+from django.urls import path, re_path
 
 
 urlpatterns = [
@@ -17,18 +18,18 @@ urlpatterns = [
         path('api/top_employees', top_employees),
         path('api/least_employee', top_least_employees),
         path('api/employees/<str:emp_ssn>/', delete_employee_by_ssn, name='delete_employee_by_ssn'),
-        # path('api/breakdown/<str:tool_code>/',add_to_reviving,name="add_to_reviving"),
-        path('api/break/<str:tool_code>/<str:date>',add_to_reviving,name="add_to_reviving"),
+        # path('api/breakdown/<path:tool_code>/',add_to_reviving,name="add_to_reviving"),
+        path('api/break/<path:tool_code>/<str:date>',add_to_reviving,name="add_to_reviving"),
         path('api/per/', PerformsList.as_view(), name='performs-list'),
 
-        path('display-tool-codes/<str:machine_id>/', display_tool_codes, name='display_tool_codes'),
+        path('display-tool-codes/<path:machine_id>/', display_tool_codes, name='display_tool_codes'),
 
-        path('target/<str:machine_name>/', target_by_machine_name, name='target_by_machine_name'),
-        path('machinesss/<str:machine_id>/', delete_machines, name='delete_machine'),
-        path('delete-tools/<str:tool_name>/', delete_tools_by_name, name='delete_tools_by_name'),
-        path('delete-job/<str:part_no>/', delete_job_by_part_no, name='delete_job_by_part_no'),
+        path('target/<path:machine_name>/', target_by_machine_name, name='target_by_machine_name'),
+        path('machinesss/<path:machine_id>/', delete_machines, name='delete_machine'),
+        path('delete-tools/<path:tool_name>/', delete_tools_by_name, name='delete_tools_by_name'),
+        path('delete-job/<path:part_no>/', delete_job_by_part_no, name='delete_job_by_part_no'),
 
-        path('machines/<str:machine_id>/', get_machine_data, name='get_machine_data'),
+        path('machines/<path:machine_id>/', get_machine_data, name='get_machine_data'),
 
         path('api/shift_counts/',shift_counts,name='shift_counts'),
         path('api/rev',LReviving1.as_view()),
@@ -49,7 +50,7 @@ urlpatterns = [
 
         path('api/update_tool', update_tool_view),
         path('api/tool_data', get_tool_data),
-        path('api/tool_chart/<str:tool_code>', tool_chart_details),
+        path('api/tool_chart/<path:tool_code>', tool_chart_details),
 
         path('api/performs', PerformsCreateView.as_view()),
         path('api/submit-performance', PerformsCreateView.as_view(), name='performs-create'),
@@ -65,8 +66,8 @@ urlpatterns = [
 
         path('api/breakdown', BreakdownList.as_view(), name='Break-down-list' ),
         path('api/breakdown/create', BreakdownCreateView.as_view(), name='Break-down-view'),
-        path('api/breakdown/<str:tool_code>',delete_breakdown_by_tool_code),
-        path('get-tool-codes/<str:part_no>/', get_tool_codes, name='get_tool_codes'),
+        path('api/breakdown/<path:tool_code>',delete_breakdown_by_tool_code),
+        path('get-tool-codes/<path:part_no>/', get_tool_codes, name='get_tool_codes'),
 
         path('api/avg/<str:date_a>/<str:date_b>', cacl_avgs),
         path('api/jobss/', unique_part_numbers_view, name='unique_part_numbers'),

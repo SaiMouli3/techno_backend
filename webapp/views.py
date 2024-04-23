@@ -256,6 +256,10 @@ class CreateMachineList(APIView):
 #         return self.add_machine_data(data)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
+class JobList(generics.ListAPIView):
+    queryset = Job.objects.all()
+    serializer_class = JobSerializer
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -487,13 +491,18 @@ def delete_employee_by_ssn(request, emp_ssn):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
+# def get_number_of_jobs(request):
+#     num_jobs = Job.objects.count()
+#     return JsonResponse({'num_jobs': num_jobs})
+
+@method_decorator(csrf_exempt, name='dispatch')
 def get_number_of_jobs(request):
-    num_jobs = Job.objects.count()
+    num_jobs = Job.objects.values('part_no').distinct().count()
     return JsonResponse({'num_jobs': num_jobs})
 
 @method_decorator(csrf_exempt, name='dispatch')
 def get_number_of_machines(request):
-    num_machines = Machine.objects.count()
+    num_machines = NewMachine.objects.count()
     return JsonResponse({'num_machines': num_machines})
 
 @method_decorator(csrf_exempt, name='dispatch')
