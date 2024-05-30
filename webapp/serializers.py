@@ -38,10 +38,35 @@ class BreakdownSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+# class PerformsSerializers(serializers.ModelSerializer):
+#     class Meta:
+#         model = Performs
+#         fields = '__all__'
+
+
 class PerformsSerializers(serializers.ModelSerializer):
+    emp_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Performs
-        fields = '__all__'
+        fields = [
+            'id',
+            'date',
+            'emp_ssn',
+            'emp_name',
+            'machine_id',
+            'shift_number',
+            'shift_duration',
+            'partial_shift',
+            'target',
+            'achieved',
+            'remarks',
+            'efficiency',
+            'incentive_received'
+        ]
+
+    def get_emp_name(self, obj):
+        return obj.emp_ssn.emp_name
 
 
 class MachineSerializer(serializers.ModelSerializer):

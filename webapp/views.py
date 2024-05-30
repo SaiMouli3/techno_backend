@@ -12,7 +12,7 @@ from django.http import JsonResponse
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django.utils.decorators import method_decorator
-from .models import Employee2, Job, Tool, Breakdown, Machine, Performs,NewMachine, ToolChart, ToolChart, Shift, NewJob,Reviving1
+from .models import Employee2, Job, Tool, Breakdown, Machine, Performs,NewMachine, ToolChart, ToolChart, Shift, NewJob,Reviving1, Auth
 from .serializers import EmployeeSerializer, JobSerializer, ToolSerializer, JobSerializer1, BreakdownSerializer, \
     MachineSerializer, PerformsSerializers, NMSerializer, ChartS, Rev
 from rest_framework.decorators import api_view
@@ -22,6 +22,12 @@ from collections import defaultdict
 from rest_framework.renderers import JSONRenderer  # Import JSONRenderer
 from django.core.exceptions import MultipleObjectsReturned
 from rest_framework.views import APIView
+import logging
+
+from rest_framework.decorators import api_view
+from .models import SignAuth
+from django.http import JsonResponse
+
 
 
 previous_values_list = []
@@ -47,24 +53,104 @@ class EmployeeCreateView(CreateAPIView):
     queryset = Employee2.objects.all()
     serializer_class = EmployeeSerializer
 
+# @method_decorator(csrf_exempt, name='dispatch')
+# class JobsList(generics.ListAPIView):
+#     serializer_class = JobSerializer
+
+#     def get_queryset(self):
+#         # Retrieve all jobs from the database
+#         all_jobs = Job.objects.all()
+
+#         # Create a dictionary to store unique jobs based on component_name, part_no, and operation_no
+#         unique_jobs = {}
+#         for job in all_jobs:
+#             key = (job.component_name, job.part_no, job.operation_no)
+#             # Add the job to the dictionary if it's not already present
+#             if key not in unique_jobs:
+#                 unique_jobs[key] = job
+
+#         # Return the unique jobs
+#         return unique_jobs.values()
+
+# @method_decorator(csrf_exempt, name='dispatch')
+# class JobsList(generics.ListAPIView):
+
+#     def get_queryset(self):
+#         return Job.objects.all()  # Return queryset for fetching Job objects
+
+#     def list(self, request, *args, **kwargs):
+#         queryset = self.get_queryset()  # Call get_queryset method to get queryset
+#         job_details_list = []
+
+#         # Iterate through queryset and construct job details
+#         for job in queryset:
+#             job_details_list.append({
+#                 'part_no': job.part_no.part_no,
+#                 'component_name': job.component_name,
+#                 'operation_no': job.operation_no,
+#             })
+
+#         # Return JSON response with job details
+#         return JsonResponse(job_details_list, safe=False)
+
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class JobsList(generics.ListAPIView):
-    serializer_class = JobSerializer
 
     def get_queryset(self):
-        # Retrieve all jobs from the database
-        all_jobs = Job.objects.all()
+        return Job.objects.all()
 
-        # Create a dictionary to store unique jobs based on component_name, part_no, and operation_no
-        unique_jobs = {}
-        for job in all_jobs:
-            key = (job.component_name, job.part_no, job.operation_no)
-            # Add the job to the dictionary if it's not already present
-            if key not in unique_jobs:
-                unique_jobs[key] = job
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        unique_job_details = set()
+        job_details_list = []
 
-        # Return the unique jobs
-        return unique_jobs.values()
+        for job in queryset:
+            job_detail = (job.part_no.part_no, job.component_name, job.operation_no)
+            # Check if the job detail is not already in the set
+            if job_detail not in unique_job_details:
+                job_details = {
+                    "part_no": job.part_no.part_no,
+                    "component_name": job.component_name,
+                    "operation_no": job.operation_no
+                }
+                unique_job_details.add(job_detail)
+                job_details_list.append(job_details)
+
+        return Response(job_details_list)
+
+
+
+# @method_decorator(csrf_exempt, name='dispatch')
+# class JobsList(generics.ListAPIView):
+
+#     def get_queryset(self):
+#         return Job.objects.all()
+
+#     def list(self, request, *args, **kwargs):
+#         queryset = self.get_queryset()
+#         unique_jobs = set()
+
+#         # Collecting unique job details
+#         for job in queryset:
+#             key = (job.part_no.part_no, job.component_name, job.operation_no)
+#             unique_jobs.add(key)
+
+#         # Converting set of unique job details to a list of dictionaries
+#         for job in unique_jobs:
+#             job_details_list = [
+#                 {
+#                     "part_no": job[0],
+#                     "component_name": job[1],
+#                     "operation_no": job[2]
+#                 }
+
+#             ]
+
+#         # Returning JSON response
+#         return Response(job_details_list)
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class NMachineList(generics.ListAPIView):
@@ -256,11 +342,49 @@ class CreateMachineList(APIView):
 #         return self.add_machine_data(data)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class JobList(generics.ListAPIView):
-    queryset = Job.objects.all()
-    serializer_class = JobSerializer
+# @method_decorator(csrf_exempt, name='dispatch')
+# class JobList(generics.ListAPIView):
+#     queryset = Job.objects.all()
+#     serializer_class = JobSerializer
 
+
+# @method_decorator(csrf_exempt, name='dispatch')
+# class JobsList(generics.ListAPIView):
+
+#     def get_queryset(self):
+#         return Job.objects.all()
+
+#     def list(self, request, *args, **kwargs):
+#         queryset = self.get_queryset()
+#         job_details_set = set()
+
+#         # Collecting unique job details
+#         for job in queryset:
+#             job_details_set.add((job.part_no.part_no, job.component_name, job.operation_no))
+
+#         # Converting set to a list of dictionaries with specific keys
+#         job_details_list = [
+#             {
+#                 "part_no": job[0],
+#                 "component_name": job[1],
+#                 "operation_no": job[2]
+#             }
+#             for job in job_details_set
+#         ]
+
+#         # Returning JSON response
+#         return Response(job_details_list)
+
+
+
+def get_tool_codess(request, part_number):
+    if not part_number:
+        return JsonResponse({'error': 'Part number is required'}, status=400)
+
+    jobs = Job.objects.filter(part_no__part_no=part_number)
+    tool_codes = list(jobs.values_list('tool_code__tool_code', flat=True))
+
+    return JsonResponse({'tool_codes': tool_codes})
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ToolCreateView(CreateAPIView):
@@ -298,6 +422,8 @@ class BreakdownCreateView(CreateAPIView):
             replaced_by_tool_code = request.data.get('replaced_by')
             incrementBrkPntByOne(tool_code)
             update_machine_tool_code(machine_id,tool_code, replaced_by_tool_code)
+
+
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         else:
@@ -465,7 +591,12 @@ def shift_eff(request, shift_number):
     shift_data = Shift.objects.filter(shift_number=shift_number)
     average_efficiency = shift_data.aggregate(avg_efficiency=Avg('shift_efficiency'))['avg_efficiency']
 
-    return JsonResponse({'average_shift_efficiency': round(average_efficiency,2)})
+    if average_efficiency is None:
+        average_efficiency = 0.0
+    else:
+        average_efficiency = round(average_efficiency, 2)
+
+    return JsonResponse({'average_shift_efficiency': average_efficiency})
 
 @method_decorator(csrf_exempt, name='dispatch')
 def get_total_avg_efficiency(request):
@@ -533,6 +664,27 @@ def get_tool_codes(request, part_no):
     unique_tool_names_list = list(unique_tool_names)
 
     return JsonResponse(unique_tool_names_list, safe=False)
+
+# new one ______________________________________________________________
+@method_decorator(csrf_exempt, name='dispatch')
+def get_tool_codes1(request, part_no,operation_no):
+    # Get tool codes associated with the provided part number
+    tool_codes = Job.objects.filter(part_no=part_no,operation_no=operation_no).values_list('tool_code', flat=True)
+    print(tool_codes)
+    # Create a set to store unique tool names
+    unique_tool_names = set()
+
+    # Iterate over each tool code and retrieve the corresponding tool name
+    for code in tool_codes:
+        tool = Tool.objects.filter(tool_code=code).first()
+        if tool:
+            unique_tool_names.add(tool.tool_name)
+
+    # Convert the set to a list
+    unique_tool_names_list = list(unique_tool_names)
+
+    return JsonResponse(unique_tool_names_list, safe=False)
+
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -705,9 +857,6 @@ def tool_codes_view(request):
     return JsonResponse(tool_data, safe=False)
 
 
-
-
-
 def unique_part_numbers_view(request):
     # Fetch all unique part numbers
     unique_part_numbers = Job.objects.values('part_no').distinct()
@@ -736,15 +885,6 @@ def unique_part_numbers_view(request):
     return JsonResponse(unique_jobs_data, safe=False)
 
 
-# def target_by_machine_name(request, machine_name):
-#     try:
-#         machines = Machine.objects.filter(machine_name=machine_name)
-#         targets = [machine.target for machine in machines]
-#         return JsonResponse({"machine_name": machine_name, "targets": targets})
-#     except Exception as e:
-#         return JsonResponse({"error": str(e)}, status=500)
-
-
 def target_by_machine_name(request, machine_name):
     try:
         machine = Machine.objects.filter(machine_name=machine_name).first()
@@ -755,46 +895,6 @@ def target_by_machine_name(request, machine_name):
             return JsonResponse({"error": "No machine found with that name"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
-
-
-# def get_machine_data(request, machine_id):
-#     machine = get_object_or_404(Machine, machine_id=machine_id)
-#     data = {
-#         "machine_id": machine.machine_id_id,  # Accessing the ID of NewMachine foreign key
-#         "machine_name": machine.machine_name,
-#         "part_no": machine.part_no_id,  # Accessing the ID of NewJob foreign key
-#         "tool_code": machine.tool_code_id,  # Accessing the ID of Tool foreign key
-#         "target": machine.target
-#     }
-#     return JsonResponse(data)
-
-# def get_machine_data(request, machine_id):
-#     try:
-#         machine = Machine.objects.filter(machine_id=machine_id).first()
-#         if machine:
-#             data = {
-#                 "machine_id": machine.machine_id_id,  # Accessing the ID of NewMachine foreign key
-#                 "machine_name": machine.machine_name,
-#                 "part_no": machine.part_no_id,  # Accessing the ID of NewJob foreign key
-#                 "tool_code": machine.tool_code_id,  # Accessing the ID of Tool foreign key
-#                 "target": machine.target
-#             }
-#             return JsonResponse(data)
-#         else:
-#             return JsonResponse({"message": "No machine found with the given ID"}, status=404)
-#     except MultipleObjectsReturned:
-#         machines = Machine.objects.filter(machine_id=machine_id)
-#         first_machine = machines.first()
-#         data = {
-#             "machine_id": first_machine.machine_id_id,  # Accessing the ID of NewMachine foreign key
-#             "machine_name": first_machine.machine_name,
-#             "part_no": first_machine.part_no_id,  # Accessing the ID of NewJob foreign key
-#             "tool_code": first_machine.tool_code_id,  # Accessing the ID of Tool foreign key
-#             "target": first_machine.target
-#         }
-#         return JsonResponse(data)
-
 
 
 def get_machine_data(request, machine_id):
@@ -841,6 +941,10 @@ def get_machine_data(request, machine_id):
 
         return JsonResponse(data)
 
+
+
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 def delete_machines(request, machine_id):
     try:
@@ -884,15 +988,509 @@ def display_tool_codes(request, machine_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
+def delete_performs_entry(request, date, emp_ssn, shift_number):
+    try:
+        performs_entry = Performs.objects.filter(date=date, emp_ssn=emp_ssn, shift_number=shift_number)
+    except Performs.DoesNotExist:
+        return JsonResponse({'error': 'Performs entry does not exist'}, status=404)
+
+    performs_entry.delete()
+    return JsonResponse({'message': 'Performs entry deleted successfully'})
+
+
+# i=0
+# @method_decorator(csrf_exempt, name='dispatch')
+# def update_machine(request, machine_id):
+#     global i
+#     try:
+#         logging.info("Received GET parameters: %s", request.GET)
+#         if i == 0:
+#             machines = Machine.objects.filter(machine_id=machine_id)
+#             machines.delete()
+#         print("HII............................................................................................................")
+#         target = request.GET.get("target")
+#         num_of_tools = int(request.GET.get("numOfTools", 0))
+#         part_no1 = request.GET.get("part_no")
+#         tool_code = request.GET.get("tool_code")
+#         print(part_no1)
+#         print("HI............................................................................................................")
+
+#         # # Retrieve or create the NewMachine instance
+#         # new_machine, created = NewMachine.objects.get_or_create(machine_id=machine_id)
+
+#         # # Create or update the Machine instance
+#         # machine, machine_created = Machine.objects.get_or_create(machine_id=new_machine)
+#         # machine.machine_name = machine_id
+#         # machine.machine_id = machine_id
+#         # machine.target = target
+#         # machine.part_no = part_no1
+#         # machine.tool_code = tool_code
+#         # print(part_no1)
+#         # machine.save()
+
+#         M_instance = Machine(machine_id = machine_id,machine_name=machine_id,part_no=part_no1,tool_code=tool_code,target=target)
+#         M_instance.save()
+
+#         i += 1
+
+#         if i == num_of_tools - 1:
+#             i = 0
+
+#         return JsonResponse({"message": "Machine updated successfully"})
+#     except Exception as e:
+#         return JsonResponse({"error": str(e)}, status=500)
+
+# i=0
+# @method_decorator(csrf_exempt, name='dispatch')
+# def update_machine(request, machine_id):
+#     global i
+#     try:
+#         if i == 0:
+#             Machine.objects.filter(machine_id=machine_id).delete()
+#         print("Hi....")
+#         target = request.POST.get("target")
+#         num_of_tools = int(request.POST.get("numOfTools", 0))
+#         part_no = request.POST.get("part_no")
+#         tool_code = request.POST.get("tool_code")
+
+#         print(target)
+#         new_machine, created = NewMachine.objects.get_or_create(machine_id=machine_id)
+
+#         machine = Machine.objects.create(
+#             machine_id=new_machine,
+#             machine_name=machine_id,
+#             part_no=part_no,
+#             tool_code=tool_code,
+#             target=target
+#         )
+#         machine.save()
+
+#         i += 1
+
+#         if i == num_of_tools - 1:
+#             i = 0
+
+#         return JsonResponse({"message": "Machine updated successfully"})
+#     except Exception as e:
+#         return JsonResponse({"error": str(e)}, status=500)
+
+
+
+# @method_decorator(csrf_exempt, name='dispatch')
+# def update_machine(request, machine_id):
+#     try:
+#         Machine.objects.filter(machine_id=machine_id).delete()
+#         print("Hi....")
+#         data = json.loads(request.body)
+#         target = data.get("target")
+#         part_no = data.get("part_no")
+#         tool_codes = data.get("tool_codes")
+
+#         print(request)
+#         new_job = NewJob.objects.get_or_create(part_no=part_no)
+#         new_machine, created = NewMachine.objects.get_or_create(machine_id=machine_id)
+#         for tool_code in tool_codes:
+#             machine = Machine.objects.create(
+#                 machine_id=new_machine,
+#                 machine_name=machine_id,
+#                 part_no=part_no,
+#                 tool_code=tool_code,
+#                 target=target
+#             )
+#             machine.save()
+
+#         return JsonResponse({"message": "Machine updated successfully"})
+#     except Exception as e:
+#         return JsonResponse({"error": str(e)}, status=500)
+
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+def update_machine(request, machine_id):
+    try:
+        # Delete existing machines with the given machine_id
+        Machine.objects.filter(machine_id=machine_id).delete()
+
+        data = json.loads(request.body)
+        target = data.get("target")
+        part_no = data.get("part_no")
+        tool_codes = data.get("tool_codes")
+
+        if tool_codes is None or not isinstance(tool_codes, (list, tuple)):
+            raise ValueError("tool_codes must be a list or tuple")
+
+        new_job, _ = NewJob.objects.get_or_create(part_no=part_no)
+        new_machine, _ = NewMachine.objects.get_or_create(machine_id=machine_id)
+
+        # Create new machines for each tool_code
+        for tool_code in tool_codes:
+            new_tool = Tool.objects.get(tool_code=tool_code)
+            machine = Machine.objects.create(
+                machine_id=new_machine,
+                machine_name=machine_id,
+                part_no=new_job,  # Assign the NewJob instance
+                tool_code=new_tool,
+                target=target
+            )
+            machine.save()
+
+        return JsonResponse({"message": "Machine updated successfully"})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+def sign_up(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        role = data.get('role')
+        username = data.get('username')
+        password = data.get('password')
+        if role and username and password:
+            new_user = Auth.objects.create(
+                role=role,
+                username=username,
+                password=password
+            )
+            return JsonResponse({'message': 'User created successfully'}, status=201)
+        else:
+            return JsonResponse({'error': 'Missing required fields'}, status=400)
+    else:
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+def login(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        role = data.get('role')
+        username = data.get('username')
+        password = data.get('password')
+        if role and username and password:
+            try:
+                user = Auth.objects.get(role=role, username=username, password=password)
+                return JsonResponse({'message': f'Login successful. Role: {role}'}, status=200)
+            except Auth.DoesNotExist:
+                return JsonResponse({'error': 'Invalid username, password, or role'}, status=401)
+        else:
+            return JsonResponse({'error': 'Missing required fields'}, status=400)
+    else:
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+# @method_decorator(csrf_exempt, name='dispatch')
+# def update_incentives(request, category, incentive):
+#     try:
+#         incentive_obj = Incentives.objects.get(category=category)
+#         incentive_obj.incentive = incentive
+#         incentive_obj.save()
+#         return JsonResponse({'message': 'Incentive updated successfully'}, status=200)
+#     except Incentives.DoesNotExist:
+#         return JsonResponse({'error': 'Incentive not found'}, status=404)
+#     except Exception as e:
+#         return JsonResponse({'error': str(e)}, status=500)
+
+
+
+# @api_view(['GET'])
+# def get_incentives(request):
+#     incentives = Incentives.objects.all().values('category', 'incentive')
+#     incentives_data = list(incentives)
+#     return JsonResponse(incentives_data, safe=False)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+def check_credentials(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            username = data.get('username')
+            password = data.get('password')
+            print(username)
+            print(password)
+            if username is not None and password is not None:
+                try:
+                    user = SignAuth.objects.get(username=username, password=password)
+                    return JsonResponse({'success': True, 'message': 'Credentials are valid.'})
+                except SignAuth.DoesNotExist:
+                    return JsonResponse({'success': False, 'message': 'Invalid credentials.'})
+            else:
+                return JsonResponse({'success': False, 'message': 'Username and password are required.'})
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'message': 'Invalid JSON data.'})
+    else:
+        return JsonResponse({'success': False, 'message': 'Only POST requests are allowed.'})
+
+@method_decorator(csrf_exempt, name='dispatch')
+def check_user(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        username = data.get('username')
+        try:
+            user = SignAuth.objects.get(username=username)
+            return JsonResponse({'exists': True, 'userId': user.id})
+        except SignAuth.DoesNotExist:
+            return JsonResponse({'exists': False})
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+from django.http import JsonResponse
+from .models import Externals
+
+def externals_data(request):
+    externals = Externals.objects.all()
+    data = [{'parameter': external.parameter, 'value': external.value} for external in externals]
+    return JsonResponse(data, safe=False)
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import Externals
+import json
+
+@csrf_exempt
+def update_externals(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            for item in data:
+                parameter = item.get('parameter')
+                value = item.get('value')
+                externals_obj, created = Externals.objects.get_or_create(parameter=parameter)
+                externals_obj.value = value
+                externals_obj.save()
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Only POST requests are allowed'}, status=405)
 
 
 
 
 
 
+from django.http import JsonResponse
+from django.db.models import F
+
+def calculate_incentive(request, emp_ssn, start_date, end_date):
+    if request.method == 'GET':
+        try:
+            # Get employee category
+            employee = Employee2.objects.get(emp_ssn=emp_ssn)
+            category = employee.emp_category
+
+            # Get incentive value based on employee category
+            parameter = "category " + str(category)
+            incentive_value = Externals.objects.get(parameter=parameter).value
+        except Employee2.DoesNotExist:
+            return JsonResponse({'error': 'Employee not found'}, status=404)
+        except Externals.DoesNotExist:
+            return JsonResponse({'error': 'Incentive value not found'}, status=404)
+
+        # Filter Performs table based on emp_ssn and date range
+        incentive_data = Performs.objects.filter(
+            emp_ssn=emp_ssn,
+            date__range=[start_date, end_date]
+        ).values('date', 'shift_number', 'efficiency', 'incentive_received')
+
+        # Convert queryset to list of dictionaries
+        incentive_list = list(incentive_data)
+
+        # Add incentive value to each dictionary in the list
+        for data in incentive_list:
+            data['incentive_value'] = incentive_value
+
+        return JsonResponse(incentive_list, safe=False)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
 
 
 
+def generate_report(request, date):
+    if request.method == 'GET':
+        # Convert date string to datetime object
+        current_date = datetime.strptime(date, "%Y-%m-%d").date()
 
+        # Fetching distinct machine IDs from Performs
+        machine_ids = Performs.objects.filter(date=current_date).values_list('machine_id', flat=True).distinct()
+
+        report = []
+        for machine_id in machine_ids:
+            # Get all machines with the current machine_id
+            machines = Machine.objects.filter(machine_id=machine_id)
+
+
+            if not machines.exists():
+                continue  # If no machine exists with this ID, skip to the next one
+
+            # Assuming you want to handle all machines with the same machine_id
+            for machine in machines:
+                target = machine.target
+
+                # Fetching component names and operation numbers for the current machine
+                components = Job.objects.filter(part_no__in=Machine.objects.filter(machine_id=machine_id).values_list('part_no', flat=True)).values('component_name', 'operation_no').distinct()
+
+                for component in components:
+                    component_name = component['component_name']
+                    operation_no = component['operation_no']
+
+                    # Fetching data for each shift for the current machine and component
+                    shift_1_achieved = Performs.objects.filter(machine_id=machine_id, shift_number=1, date=current_date).aggregate(total_achieved=Sum('achieved'))['total_achieved'] or 0
+                    shift_2_achieved = Performs.objects.filter(machine_id=machine_id, shift_number=2, date=current_date).aggregate(total_achieved=Sum('achieved'))['total_achieved'] or 0
+                    shift_3_achieved = Performs.objects.filter(machine_id=machine_id, shift_number=3, date=current_date).aggregate(total_achieved=Sum('achieved'))['total_achieved'] or 0
+
+                    per_day_target = target * 3
+                    per_day_achieved = shift_1_achieved + shift_2_achieved + shift_3_achieved
+
+                    # Calculating percentages
+                    shift_1_percentage = (shift_1_achieved / target) * 100 if target > 0 else 0
+                    shift_2_percentage = (shift_2_achieved / target) * 100 if target > 0 else 0
+                    shift_3_percentage = (shift_3_achieved / target) * 100 if target > 0 else 0
+                    per_day_achieved_percentage = (per_day_achieved / per_day_target) * 100 if per_day_target > 0 else 0
+
+                    if {
+                        'machine_id': machine_id,
+                        'component_name': component_name,
+                        'operation_no': operation_no,
+
+                        'shift_target': target,
+                        'quantity_achieved_shift_1': shift_1_achieved,
+                        'shift_1_percentage': shift_1_percentage,
+                        'quantity_achieved_shift_2': shift_2_achieved,
+                        'shift_2_percentage': shift_2_percentage,
+                        'quantity_achieved_shift_3': shift_3_achieved,
+                        'shift_3_percentage': shift_3_percentage,
+                        'per_day_target': per_day_target,
+                        'per_day_achieved': per_day_achieved,
+                        'per_day_achieved_percentage': per_day_achieved_percentage,
+                    } not in report :
+                        report.append({
+                            'machine_id': machine_id,
+                            'component_name': component_name,
+                            'operation_no': operation_no,
+
+                            'shift_target': target,
+                            'quantity_achieved_shift_1': shift_1_achieved,
+                            'shift_1_percentage': shift_1_percentage,
+                            'quantity_achieved_shift_2': shift_2_achieved,
+                            'shift_2_percentage': shift_2_percentage,
+                            'quantity_achieved_shift_3': shift_3_achieved,
+                            'shift_3_percentage': shift_3_percentage,
+                            'per_day_target': per_day_target,
+                            'per_day_achieved': per_day_achieved,
+                            'per_day_achieved_percentage': per_day_achieved_percentage,
+                        })
+
+        return JsonResponse(report, safe=False)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+
+
+# @method_decorator(csrf_exempt, name='dispatch')
+# class JobsList(generics.ListAPIView):
+
+#     def get_queryset(self):
+#         return Job.objects.all()
+
+#     def list(self, request, *args, **kwargs):
+#         queryset = self.get_queryset()
+#         job_details_list = []
+
+#         for job in queryset:
+#             job_details_list.append({
+#                 'part_no': job.part_no.part_no,
+#                 'component_name': job.component_name,
+#                 'operation_no': job.operation_no
+#             })
+
+#         return JsonResponse(job_details_list, safe=False)
+
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+from .models import Externals
+
+@csrf_exempt
+def create_external(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            parameter = data.get("parameter")
+            value = data.get("value")
+            type1= data.get("type")
+            if type1=="category":
+                parameter="category "+str(parameter)
+            externals_obj = Externals.objects.create(parameter=parameter,value=value)
+
+            externals_obj.save()
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Only POST requests are allowed'}, status=405)
+
+
+
+
+@csrf_exempt
+def breakdown_tool_codes(request, tool_code):
+    try:
+        tool = Tool.objects.get(tool_code=tool_code)
+        tools_with_same_name = Tool.objects.filter(tool_name=tool.tool_name)
+        tool_codes = [tool.tool_code for tool in tools_with_same_name]
+
+        return JsonResponse({'tool_codes': tool_codes})
+    except Tool.DoesNotExist:
+        return JsonResponse({'error': 'Tool with the specified tool code does not exist'}, status=404)
+    else:
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@csrf_exempt
+def get_machine_jobs(request, machine_id):
+    try:
+        machine = Machine.objects.filter(machine_id=machine_id).first()
+        if not machine:
+            return JsonResponse({"error": "Machine not found"}, status=404)
+
+        job = Job.objects.get(part_no=machine.part_no, tool_code=machine.tool_code)
+        job_detail = {
+            "part_no":machine.part_no.part_no,
+            "operation_no": job.operation_no,
+            "component_name": job.component_name
+        }
+
+        return JsonResponse(job_detail, safe=False)
+    except Job.DoesNotExist:
+        return JsonResponse({"error": "Job details not found for the machine"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+
+@csrf_exempt
+def update_tool(request, tool_code):
+    try:
+        data = json.loads(request.body)
+        tool = Tool.objects.get(tool_code=tool_code)
+        # tool.tool_code = data.get("tool_code")
+        tool.tool_name = data.get("tool_name", tool.tool_name)
+        tool.max_life_expectancy_in_mm = data.get("max_life_expectancy_in_mm", tool.max_life_expectancy_in_mm)
+        tool.cost = data.get("cost", tool.cost)
+        tool.length_cut_so_far = data.get("length_cut_so_far", tool.length_cut_so_far)
+        tool.no_of_brk_points = data.get("no_of_brk_points", tool.no_of_brk_points)
+        tool.tool_efficiency = data.get("tool_efficiency", tool.tool_efficiency)
+        tool.save()
+        return JsonResponse({"message": "Tool updated successfully"})
+    except Tool.DoesNotExist:
+        return JsonResponse({"error": "Tool not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
