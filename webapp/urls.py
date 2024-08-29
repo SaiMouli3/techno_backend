@@ -14,7 +14,9 @@ from . import views
 from .views import check_credentials
 from .views import generate_report,calculate_incentive
 from .views import update_externals,externals_data,get_tool_codes1,create_external
-from .views import breakdown_tool_codes,get_machine_jobs,update_tool
+from .views import breakdown_tool_codes,get_machine_jobs,update_tool,delete_external
+from .views import update_incentive
+
 
 
 
@@ -40,14 +42,14 @@ urlpatterns = [
 
         path('target/<path:machine_name>/', target_by_machine_name, name='target_by_machine_name'),
         path('machinesss/<path:machine_id>/', delete_machines, name='delete_machine'),
-        path('delete-tools/<path:tool_name>/', delete_tools_by_name, name='delete_tools_by_name'),
+        path('delete-tools/<path:tool_name>/<path:tool_code>', delete_tools_by_name, name='delete_tools_by_name'),
         path('delete-job/<path:part_no>/', delete_job_by_part_no, name='delete_job_by_part_no'),
 
         path('machines/<path:machine_id>/', get_machine_data, name='get_machine_data'),
 
         path('api/shift_counts/',shift_counts,name='shift_counts'),
         path('api/rev',LReviving1.as_view()),
-        path('calculate-shift-efficiency/<str:date_a>/<str:date_b>/<int:shift_number>/', calculate_avg_shift_efficiency, name='calculate_avg_shift_efficiency'),
+        path('calculate-shift-efficiency/<path:date_a>/<path:date_b>/<int:shift_number>/', calculate_avg_shift_efficiency, name='calculate_avg_shift_efficiency'),
 
         path('api/tool_reply/',tool_codes_view,name="toolcodesView"),
         path('api/nmview/',NMachineView.as_view()),
@@ -112,11 +114,14 @@ urlpatterns = [
         path('api/machine_jobs/<path:machine_id>/', get_machine_jobs, name='get-machine-jobs'),
         path('update_tool/<path:tool_code>/', update_tool, name='update_tool'),
 
+        path('externals/<str:parameter>/delete/', delete_external, name='delete-external'),
 
 
 
 
-    path('check-user/', views.check_user, name='check_user'),
+
+        path('check-user/', views.check_user, name='check_user'),
+        path('performs/update-incentive/', update_incentive, name='update-incentive'),
 
 ]
 

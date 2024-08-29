@@ -386,27 +386,82 @@ def get_tool_codess(request, part_number):
 
     return JsonResponse({'tool_codes': tool_codes})
 
+# @method_decorator(csrf_exempt, name='dispatch')
+# class ToolCreateView(CreateAPIView):
+#     queryset = Tool.objects.all()
+#     serializer_class = ToolSerializer
+#     def create(self, request, *args, **kwargs):
+#         tool_name = request.data.get('tool name')  # Assuming 'tool_name' is the field name for tool name
+#         tool_code = request.data.get('tool_code')  # Assuming 'tool_code' is the field name for tool code
+#         tool_codes = Tool.objects.filter(tool_name=tool_name).values_list('tool_code', flat=True)
+#         z = 0
+#         for code in tool_codes:
+#             if Job.objects.filter(tool_code=code).exists():
+# 			z = 1
+#         if z == 1 :
+#         	for code in tool_code :
+#         	    job_exists = Job.objects.filter(tool_code=code).exists()
+#         	    job_exist = Job.objects.filter(tool_code=code)
+#                 if job_exists:
+#                     Job.objects.create(
+#                     part_no=job_exist.part_no,
+#                     component_name=job_exist.component_name,
+#                     depth_of_cut=job_exist.depth_of_cut,
+#                     no_of_holes=job_exist.no_of_holes,
+#                     operation_no=job_exist.operation_no,
+#                     tool_code=code  # Update with the new tool code
+#                 )
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class ToolCreateView(CreateAPIView):
     queryset = Tool.objects.all()
     serializer_class = ToolSerializer
+
+    # def create(self, request, *args, **kwargs):
+    #     tool_name = request.data.get('tool_name')  # Assuming 'tool_name' is the field name for tool name
+    #     print("_________________________PRINTING TOOL NAME IN TOOL CREATE VIEW------------------------------------")
+    #     print(tool_name)
+    #     tool_codes = Tool.objects.filter(tool_name=tool_name).values_list('tool_code',flat=True)
+    #     print(list(tool_codes))
+
+    #     job_exists = False
+    #     for code in tool_codes:
+    #         if Job.objects.filter(tool_code=code).exists():
+    #             print("After JOBS FILTER 12334456777888----")
+    #             job_exists = True
+    #             break
+
+    #     if job_exists:
+    #         new_tool_code = request.data.get('tool_code')  # Assuming 'tool_code' is the field name for the new tool code
+    #         print(f"New tool code :{new_tool_code}")
+    #         for code in tool_codes:
+    #             job_queryset = Job.objects.filter(tool_code=code).all()
+    #             print(job_queryset)
+    #             for job in job_queryset:
+    #                 print(job)
+
+    #                 Job.objects.create(
+    #                     part_no=job.part_no,
+    #                     component_name=job.component_name,
+    #                     depth_of_cut=job.depth_of_cut,
+    #                     no_of_holes=job.no_of_holes,
+    #                     operation_no=job.operation_no,
+    #                     tool_code=new_tool_code  # Update with the new tool code
+    #                 )
+    #                 print("Created new job")
+
+    #     return super().create(request, *args, **kwargs)
+
+
+
+
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class BreakdownList(generics.ListAPIView):
     queryset = Breakdown.objects.all()
     serializer_class = BreakdownSerializer
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            self.perform_create(serializer)
-            tool_code = request.data.get('tool_code')
-            incrementBrkPntByOne(tool_code)
-            headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class BreakdownCreateView(CreateAPIView):
@@ -422,6 +477,7 @@ class BreakdownCreateView(CreateAPIView):
             replaced_by_tool_code = request.data.get('replaced_by')
             incrementBrkPntByOne(tool_code)
             update_machine_tool_code(machine_id,tool_code, replaced_by_tool_code)
+
 
 
             headers = self.get_success_headers(serializer.data)
@@ -504,27 +560,74 @@ def update_tool_view(request):
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-@method_decorator(csrf_exempt, name='dispatch')
+# @method_decorator(csrf_exempt, name='dispatch')
+# def incrementBrkPntByOne(tool_code):
+
+#     tool = Tool.objects.get(tool_code=tool_code)
+#     tool.no_of_brk_points += 1
+#     part_no_count = Job.objects.filter(tool_code=tool).count()
+
+
+#     efficiency=(tool.length_cut_so_far/tool.max_life_expectancy_in_mm)*100
+
+#     print("=-=-=-=-=-=-=-=-=EFFICIENCY IN TOOL CHART-=-=--=-=-=-=-=-=")
+#     print(f"{efficiency}")
+#     print(f"Length cut so far {tool.length_cut_so_far}")
+#     print(f"Max Life {tool.max_life_expectancy_in_mm}")
+
+#     # Create and save ToolChart instance
+#     tool_chart = ToolChart.objects.create(
+#         tool_code=tool_code,
+#         no_of_brk_points=tool.no_of_brk_points,
+#         tool_efficiency=efficiency,
+#         part_no_count=part_no_count
+#     )
+
+#     tool.tool_efficiency=0
+#     tool.length_cut_so_far=0
+#     tool_chart.save()
+#     tool.save()
+
+from django.db.models.signals import pre_save, post_save
+from .models import check_job_table_after_tool_save
+
 def incrementBrkPntByOne(tool_code):
+
+    print("IN INCREMENT BRK POINT BY ONE")
+    # # Disconnect signals
+    post_save.disconnect(check_job_table_after_tool_save,sender=Tool)
+
+
+
     tool = Tool.objects.get(tool_code=tool_code)
     tool.no_of_brk_points += 1
     part_no_count = Job.objects.filter(tool_code=tool).count()
 
+    efficiency = (tool.length_cut_so_far / tool.max_life_expectancy_in_mm) * 100
 
-    efficiency=(tool.length_cut_so_far/tool.max_life_expectancy_in_mm)*100
+    print("=-=-=-=-=-=-=-=-=EFFICIENCY IN TOOL CHART-=-=--=-=-=-=-=-=")
+    print(f"{efficiency}")
+    print(f"Length cut so far {tool.length_cut_so_far}")
+    print(f"Max Life {tool.max_life_expectancy_in_mm}")
 
     # Create and save ToolChart instance
-    tool_chart = ToolChart.objects.create(
-        tool_code=tool_code,
-        no_of_brk_points=tool.no_of_brk_points,
-        tool_efficiency=efficiency,
-        part_no_count=part_no_count
-    )
-
-    tool.tool_efficiency=0
-    tool.length_cut_so_far=0
-    tool_chart.save()
+    # tool_chart = ToolChart.objects.create(
+    #     tool_code=tool_code,
+    #     no_of_brk_points=tool.no_of_brk_points,
+    #     tool_efficiency=efficiency,
+    #     part_no_count=part_no_count
+    # )
+    print("tool_chart is saved .............")
+    tool.tool_efficiency = 0
+    print("effiency ...................")
+    tool.length_cut_so_far = 0
+    print("length.................")
+    # tool_chart.save()
     tool.save()
+    print("tool is saved ................")
+
+    post_save.connect(check_job_table_after_tool_save,sender=Tool)
+    print("connected ..........................")
 
 
 def RGH(request):
@@ -890,6 +993,8 @@ def target_by_machine_name(request, machine_name):
         machine = Machine.objects.filter(machine_name=machine_name).first()
         if machine:
             target = machine.target
+            print("-----------------------------------------------MACHINE TARGET--------------------------------")
+            print(target)
             return JsonResponse({"machine_name": machine_name, "target": target})
         else:
             return JsonResponse({"error": "No machine found with that name"}, status=404)
@@ -960,13 +1065,30 @@ def delete_machines(request, machine_id):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-def delete_tools_by_name(request, tool_name):
+def delete_tools_by_name(request, tool_name, tool_code):
     try:
-        tools = Tool.objects.filter(tool_name=tool_name)
-        tools.delete()
-        return JsonResponse({'message': f'All tools with tool_name {tool_name} deleted successfully'})
+        print(f"Attempting to delete tool with tool_name: {tool_name}, tool_code: {tool_code}")
+
+        jobs_before_update = Job.objects.filter(tool_code=tool_code)
+        print(f"Jobs before update: {[str(job) for job in jobs_before_update]}")
+
+        job_count = Job.objects.filter(tool_code=tool_code).update(tool_code=None)
+        print(f"Updated {job_count} Job records to set tool_code to NULL")
+
+        jobs_after_update = Job.objects.filter(tool_code=tool_code)
+        print(f"Jobs after update: {[str(job) for job in jobs_after_update]}")
+
+        tools = Tool.objects.filter(tool_name=tool_name, tool_code=tool_code)
+        tool_count = tools.delete()
+        print(f"Deleted {tool_count[0]} Tool records with tool_name: {tool_name}, tool_code: {tool_code}")
+
+        return JsonResponse({'message': f'All tools with tool_name {tool_name} and tool_code {tool_code} deleted successfully'})
     except Exception as e:
+        print(f"Error occurred: {e}")
         return JsonResponse({'error': str(e)}, status=500)
+
+
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 def delete_job_by_part_no(request, part_no):
@@ -991,7 +1113,10 @@ def display_tool_codes(request, machine_id):
 @method_decorator(csrf_exempt, name='dispatch')
 def delete_performs_entry(request, date, emp_ssn, shift_number):
     try:
-        performs_entry = Performs.objects.filter(date=date, emp_ssn=emp_ssn, shift_number=shift_number)
+        data = json.loads(request.body)
+        id = data.get('id')
+        performs_entry = Performs.objects.filter(date=date, emp_ssn=emp_ssn, shift_number=shift_number,id =id)
+
     except Performs.DoesNotExist:
         return JsonResponse({'error': 'Performs entry does not exist'}, status=404)
 
@@ -1413,10 +1538,8 @@ def generate_report(request, date):
 
 
 
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-import json
-from .models import Externals
+
 
 @csrf_exempt
 def create_external(request):
@@ -1494,3 +1617,61 @@ def update_tool(request, tool_code):
         return JsonResponse({"error": "Tool not found"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+from django.http import HttpResponseBadRequest
+
+@csrf_exempt
+def delete_external(request, parameter):
+    try:
+        external = Externals.objects.get(parameter=parameter)
+        external.delete()
+        return JsonResponse({'success': True})
+    except Externals.DoesNotExist:
+        return HttpResponseBadRequest('Item not found')
+
+
+@csrf_exempt
+def update_incentive(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+
+            date = data.get('date')
+            emp_ssn = data.get('emp_ssn')
+            target = data.get('target')
+            achieved = data.get('achieved')
+            machine_id = data.get('machine_id')
+            efficiency = data.get('efficiency')
+            new_incentive = data.get('incentive_received')
+
+            if None in [date, emp_ssn, target, achieved, machine_id, efficiency, new_incentive]:
+                return HttpResponseBadRequest('Missing required fields')
+
+            employee = Employee2.objects.get(emp_ssn=emp_ssn)
+
+            perform_instance = Performs.objects.filter(
+                date=date,
+                emp_ssn=employee,
+                target=target,
+                achieved=achieved,
+                machine_id=machine_id,
+                efficiency=efficiency
+            ).first()
+
+            if not perform_instance:
+                return HttpResponseBadRequest('Performs instance not found')
+
+            try:
+                perform_instance.incentive_received = round(float(new_incentive), 2)
+                perform_instance.save()  # Save the updated instance
+
+                return JsonResponse({'success': True, 'incentive_received': perform_instance.incentive_received})
+            except ValueError:
+                return HttpResponseBadRequest('Invalid incentive_received value')
+
+        except Employee2.DoesNotExist:
+            return HttpResponseBadRequest('Employee not found')
+        except json.JSONDecodeError:
+            return HttpResponseBadRequest('Invalid JSON format')
+    else:
+        return HttpResponseBadRequest('Only POST requests are allowed')
