@@ -99,6 +99,7 @@ INSTALLED_APPS = [
 
 To set up your database schema, apply migrations:
 python manage.py migrate
+
 ---
 
 ## Step 9: Start the Development Server
