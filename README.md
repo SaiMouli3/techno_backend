@@ -97,13 +97,13 @@ INSTALLED_APPS = [
 
 ## Step 8: Apply Migrations
 
-To set up your database schema, apply migrations:
-python manage.py migrate
+To set up your database schema, apply migrations:<br>
+**python manage.py migrate**
 
 ---
 
 ## Step 9: Start the Development Server
 
-Once everything is set up, you can run the Django development server:
-python manage.py runserver
+Once everything is set up, you can run the Django development server:<br>
+**python manage.py runserver**
 
